@@ -1,0 +1,10 @@
+
+[Desktop Entry]
+Name=qFSView
+GenericName=Storage visualiser
+Exec=qtpass
+Icon=${SNAP}/qfsview.png
+Type=Application
+StartupNotify=false
+Terminal=false
+Categories=Utility;

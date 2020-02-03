@@ -1,0 +1,99 @@
+name: qfsview
+summary: Visualise storage utilisation.
+description: |
+      qFSView shows storage utilisation as a *treemap*. It displays files and folders as a 
+      rectangle with an area proportional to its storage, and the sum storage of any of children. 
+
+icon: gui/qfsview.png
+confinement: strict
+adopt-info: qfsview
+base: core18
+grade: stable
+
+apps:
+  qfsview:
+    adapter: full
+    command: bin/fsview
+    command-chain:
+      - bin/desktop-launch
+      - bin/gtk3-env-launch
+    desktop: qfsview.desktop
+    environment:
+      DISABLE_WAYLAND: 1 
+    plugs:
+      - home
+      - network
+      - opengl
+      - removable-media
+      - unity7
+      - x11
+      - wayland
+      - gsettings # allow wayland apps access system theme settings
+      - desktop
+      - desktop-legacy
+parts:
+  launchers: # custom launcher to set QT_QPA_PLATFORMTHEME=gtk3 correctly
+    source: local/launchers
+    plugin: dump
+    organize:
+      '*': bin/
+  desktop-file:
+    source: gui
+    source-type: local
+    plugin: dump
+
+  qfsview:
+    plugin: cmake
+    after: [desktop-qt5]
+    source-type: git
+    source: https://github.com/blastrock/qfsview.git 
+    override-pull: |
+        snapcraftctl pull
+        snapcraftctl set-version \
+        "$(git describe --long --tags --always --match=v*.*.* | sed 's/v//')"
+    build-packages:
+      - libqt5svg5-dev
+      - qttools5-dev-tools
+      - libqt5x11extras5-dev
+      - libpoppler-qt5-dev
+      - pkg-config
+    override-build: | # enable snap deployment target and set app store
+        cmake ../src -DCMAKE_BUILD_TYPE=Release
+        make
+        mkdir $SNAPCRAFT_PART_INSTALL/bin
+        cp fsview $SNAPCRAFT_PART_INSTALL/bin
+    stage-packages:
+      - qttranslations5-l10n
+      - libqt5core5a
+      - libqt5gui5
+      - libqt5network5
+      - libqt5sql5-sqlite
+      - libqt5svg5
+      - libqt5printsupport5
+      - qtwayland5
+      - zlib1g
+      - dbus
+      - qt5-gtk-platformtheme # for theming, font settings, cursor and to use gtk3 file chooser
+      - qt5-style-plugins # for mouse cursor theme fix
+  desktop-qt5: # custom define becasue no remote parts are supported when using a base (at least not on 16.04), https://github.com/ubuntu/snapcraft-desktop-helpers
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: qt
+    plugin: make
+    make-parameters: ["FLAVOR=qt5"]
+    build-packages:
+      - qtbase5-dev
+      - dpkg-dev
+    stage-packages:
+      - libxkbcommon0
+      - ttf-ubuntu-font-family
+      - dmz-cursor-theme
+      - light-themes
+      - adwaita-icon-theme
+      - gnome-themes-standard
+      - shared-mime-info
+      - libqt5gui5
+      - libgdk-pixbuf2.0-0
+      - libqt5svg5 # for loading icon themes which are svg
+      - try: [appmenu-qt5] # not available on core18
+      - locales-all
+
